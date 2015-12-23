@@ -19,7 +19,11 @@ else:
     sys.exit("haarcascade_eye.xml not found")
 
 
-img = cv2.imread(sys.argv[1])
+if not sys.argv[1]:
+    print("No image given")
+    quit()
+else:
+    img = cv2.imread(sys.argv[1])
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 
@@ -32,7 +36,7 @@ else:
     print("Found {0} faces!".format(len(faces)))
 
 for (x, y, w, h) in faces:
-    img = cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+    cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
     roi_gray = gray[y:y + h, x:x + w]
     roi_color = img[y:y + h, x:x + w]
     eyes = eye_cascade.detectMultiScale(
