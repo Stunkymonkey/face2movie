@@ -9,14 +9,13 @@ try:
 except:
     sys.exit("Please install OpenCV")
 
-try:
-    from images2gif import writeGif
-except:
-    pass
-    # sys.exit("Please install images2gif")
+# try:
+#     from images2gif import writeGif
+# except:
+#     sys.exit("Please install images2gif")
 
 FOLDER = os.path.join(os.path.abspath("."))
-
+DEST_DIR = os.path.join(os.path.abspath(".") + r"/tmp/")
 
 if (os.path.isfile("haarcascade_frontalface_default.xml")):
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -27,6 +26,9 @@ if (os.path.isfile("haarcascade_eye.xml")):
     eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 else:
     sys.exit("haarcascade_eye.xml not found")
+
+if not os.path.exists(DEST_DIR):
+    os.makedirs(DEST_DIR)
 
 
 def dectectFace(gray):
@@ -88,6 +90,8 @@ def calculatePicture(file):
 
     if faces is None or eyes is None:
         return None
+    if len(faces) != 1 or len(eyes) != 2:
+        return None
     face = faces[0]
     eye = [eyes[0], eyes[1]]
 
@@ -96,6 +100,7 @@ def calculatePicture(file):
     dst = cv2.warpAffine(img, moveMatrix, (width, height))
     dst = cv2.warpAffine(dst, rotMatrix, (width, height))
 
+    """
     try:
         cv2.imshow('face2gif', dst)
         cv2.waitKey(0)
@@ -104,6 +109,10 @@ def calculatePicture(file):
         print("User pressed Ctrl+C")
 
     cv2.destroyAllWindows()
+    """
+    cv2.imwrite(DEST_DIR + os.path.basename(file), dst)
+
+    return dst
 
 
 def matrixPicture(face, eyes, height, width):
@@ -154,3 +163,6 @@ if __name__ == '__main__':
     files = checkInput()
     for file in files:
         calculatePicture(file)
+    print("convert -delay 10 -loop 0 tmp/*.jpeg animation.gif")
+    # print(data)
+    # writeGif("gif.gif", data, duration, subRectangles=True)
