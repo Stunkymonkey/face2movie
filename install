@@ -1,0 +1,3 @@
+#Arch
+sudo pip install images2gif
+sudo pacman -S opencv python2-pillow

@@ -1,15 +1,20 @@
 # import numpy as np
 import sys
 import os.path
+from math import atan, pi
+import numpy as np
 
 try:
     import cv2
 except:
-    print("Please install OpenCV")
-    quit()
+    sys.exit("Please install OpenCV")
 
-global VERBOSE
-VERBOSE = False
+try:
+    from images2gif import writeGif
+except:
+    pass
+    # sys.exit("Please install images2gif")
+
 FOLDER = os.path.join(os.path.abspath("."))
 
 
@@ -33,7 +38,7 @@ def dectectFace(gray):
 def detectEye(roi_gray):
     """detecting eyes"""
     return eye_cascade.detectMultiScale(
-            roi_gray, scaleFactor=1.05, minNeighbors=5, minSize=(25, 25))
+        roi_gray, scaleFactor=1.05, minNeighbors=5, minSize=(25, 25))
 
 
 def drawFaces(faces, img):
@@ -51,52 +56,78 @@ def drawEyes(eyes, img):
 def detect(img, gray):
     faces = dectectFace(gray)
 
-    if VERBOSE:
-        if (len(faces) == 1):
-            print("Found one face!")
-        else:
-            print("Found {0} faces!".format(len(faces)))
+    # for making sure only having one face
+    if len(faces) == 0:
+        return None, None
 
-    drawFaces(faces, img)
+    # drawFaces(faces, img)
 
-    data = dict()
+    # data = dict()
 
     for (x, y, w, h) in faces:
         roi_gray = gray[y:y + h, x:x + w]
-        roi_color = img[y:y + h, x:x + w]
-        eyes = []
+        # roi_color = img[y:y + h, x:x + w]
         eyes = detectEye(roi_gray)
 
-        data[(x, y, w, h)] = eyes
+        if len(eyes) != 2:
+            return None, None
 
-        if VERBOSE:
-            if (len(eyes) == 1):
-                print("Found one eye!")
-            else:
-                print("Found {0} eyes!".format(len(eyes)))
+        # data[(x, y, w, h)] = eyes
 
-        drawEyes(eyes, roi_color)
-    return data
+        # drawEyes(eyes, roi_color)
+        return faces, eyes
+    # return faces, eyes
 
 
 def calculatePicture(file):
     """gettings infos of the image"""
     img = cv2.imread(file)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    face_data = detect(img, gray)
+    faces, eyes = detect(img, gray)
     height, width, channels = img.shape
 
-    """
+    if faces is None or eyes is None:
+        return None
+    face = faces[0]
+    eye = [eyes[0], eyes[1]]
+
+    moveMatrix, rotMatrix = matrixPicture(face, eye, height, width)
+
+    dst = cv2.warpAffine(img, moveMatrix, (width, height))
+    dst = cv2.warpAffine(dst, rotMatrix, (width, height))
+
     try:
-        cv2.imshow('face2gif', img)
+        cv2.imshow('face2gif', dst)
         cv2.waitKey(0)
     except (KeyboardInterrupt):
         cv2.destroyAllWindows()
         print("User pressed Ctrl+C")
 
     cv2.destroyAllWindows()
-    """
-    return [file, height, width, face_data]
+
+
+def matrixPicture(face, eyes, height, width):
+    """calculation of rotation and movement of the image"""
+    center = tuple((face[0] + (face[2] / 2), face[1] + (face[3] / 2)))
+    scale = 1.0
+
+    M1 = np.float32([[1, 0, (width / 2) - center[0]],
+                     [0, 1, (height / 2) - center[1]]])
+
+    eye1 = tuple((eyes[0][0] + (eyes[0][2] / 2),
+                  eyes[0][1] + (eyes[0][3] / 2)))
+    eye2 = tuple((eyes[1][0] + (eyes[1][2] / 2),
+                  eyes[1][1] + (eyes[1][3] / 2)))
+
+    angle = atan((float(eye2[1]) - float(eye1[1])) /
+                 (float(eye2[0]) - float(eye1[0]))) * 180 / pi
+
+    M2 = cv2.getRotationMatrix2D(center, angle, scale)
+
+    # Matrix = np.dot(M1, M2)
+    # Matrix = cv2.getAffineTransform(M1, M2)
+    # print(Matrix)
+    return M1, M2
 
 
 def checkInput():
@@ -120,8 +151,6 @@ def checkInput():
 
 
 if __name__ == '__main__':
-    data = []
     files = checkInput()
     for file in files:
-        data.append(calculatePicture(file))
-    print(data)
+        calculatePicture(file)
