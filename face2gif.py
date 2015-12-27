@@ -9,10 +9,10 @@ try:
 except:
     sys.exit("Please install OpenCV")
 
-# try:
-#     from images2gif import writeGif
-# except:
-#     sys.exit("Please install images2gif")
+try:
+    from images2gif import writeGif
+except:
+    sys.exit("Please install images2gif")
 
 FOLDER = os.path.join(os.path.abspath("."))
 DEST_DIR = os.path.join(os.path.abspath(".") + r"/tmp/")
@@ -64,8 +64,6 @@ def detect(img, gray):
 
     # drawFaces(faces, img)
 
-    # data = dict()
-
     for (x, y, w, h) in faces:
         roi_gray = gray[y:y + h, x:x + w]
         # roi_color = img[y:y + h, x:x + w]
@@ -74,45 +72,9 @@ def detect(img, gray):
         if len(eyes) != 2:
             return None, None
 
-        # data[(x, y, w, h)] = eyes
-
         # drawEyes(eyes, roi_color)
         return faces, eyes
     # return faces, eyes
-
-
-def calculatePicture(file):
-    """gettings infos of the image"""
-    img = cv2.imread(file)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    faces, eyes = detect(img, gray)
-    height, width, channels = img.shape
-
-    if faces is None or eyes is None:
-        return None
-    if len(faces) != 1 or len(eyes) != 2:
-        return None
-    face = faces[0]
-    eye = [eyes[0], eyes[1]]
-
-    moveMatrix, rotMatrix = matrixPicture(face, eye, height, width)
-
-    dst = cv2.warpAffine(img, moveMatrix, (width, height))
-    dst = cv2.warpAffine(dst, rotMatrix, (width, height))
-
-    """
-    try:
-        cv2.imshow('face2gif', dst)
-        cv2.waitKey(0)
-    except (KeyboardInterrupt):
-        cv2.destroyAllWindows()
-        print("User pressed Ctrl+C")
-
-    cv2.destroyAllWindows()
-    """
-    cv2.imwrite(DEST_DIR + os.path.basename(file), dst)
-
-    return dst
 
 
 def matrixPicture(face, eyes, height, width):
@@ -139,6 +101,44 @@ def matrixPicture(face, eyes, height, width):
     return M1, M2
 
 
+def calculatePicture(file):
+    """gettings infos of the image and applie the matrixes"""
+    img = cv2.imread(file)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    faces, eyes = detect(img, gray)
+    height, width, channels = img.shape
+
+    if faces is None or eyes is None:
+        return
+
+    face = faces[0]
+    eye = [eyes[0], eyes[1]]
+
+    moveMatrix, rotMatrix = matrixPicture(face, eye, height, width)
+
+    dst = cv2.warpAffine(img, moveMatrix, (width, height))
+    dst = cv2.warpAffine(dst, rotMatrix, (width, height))
+
+    """
+    try:
+        cv2.imshow('face2gif', dst)
+        cv2.waitKey(0)
+    except (KeyboardInterrupt):
+        cv2.destroyAllWindows()
+        print("User pressed Ctrl+C")
+
+    cv2.destroyAllWindows()
+    """
+    # cv2.imwrite(DEST_DIR + os.path.basename(file), dst)
+    # if faces is not None and eyes is not None:
+    # if animation.isOpened():
+    animation.write(dst)
+    # else:
+    #     print("Skipped picture")
+
+    # return dst
+
+
 def checkInput():
     """check input and return files"""
     files = []
@@ -161,8 +161,17 @@ def checkInput():
 
 if __name__ == '__main__':
     files = checkInput()
-    for file in files:
-        calculatePicture(file)
-    print("convert -delay 10 -loop 0 tmp/*.jpeg animation.gif")
-    # print(data)
-    # writeGif("gif.gif", data, duration, subRectangles=True)
+    # x264
+    fourcc = cv2.cv.CV_FOURCC(*"XVID")
+    fps = 24.0
+    height, width, channel = cv2.imread(files[0]).shape
+    global animation
+    animation = cv2.VideoWriter("animation.mov", fourcc, fps, (height, width))
+    while animation.isOpened:
+        for file in files:
+            dst = calculatePicture(file)
+            animation.write(dst)
+        cv2.destroyAllWindows()
+        break
+    animation.release()
+    print("just do: 'convert -delay 10 -loop 0 tmp/*.jpeg animation.gif'")
