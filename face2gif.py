@@ -16,12 +16,15 @@ parser.add_option("-i", "--imagefolder", type="string", dest="imagefolder",
                   help="Path of images")
 parser.add_option("-w", "--write", action="store_true", dest="write",
                   default=False, help="to write every single image to file")
+parser.add_option("-r", "--reverse", action="store_true", dest="reverse",
+                  default=False, help="iterate the files reversed")
 
 (options, args) = parser.parse_args()
 imagefolder = options.imagefolder
 if (imagefolder is None):
     sys.exit("No images given")
 write = bool(options.write)
+reverse = bool(options.reverse)
 
 if (os.path.isfile("haarcascade_frontalface_default.xml")):
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -151,6 +154,10 @@ def checkInput():
         for file in os.listdir(imagefolder):
             if os.path.isfile(os.path.join(imagefolder, file)):
                 files.append(imagefolder + file)
+    if reverse:
+        files.sort(reverse=True)
+    else:
+        files.sort()
     return files
 
 
@@ -194,7 +201,7 @@ def toFile():
             cv2.imwrite(destdir + os.path.basename(file), dst)
     print("all files are safed in: " + str(destdir))
     print("now generating gif ...")
-    print(subprocess.call(["convert", "-delay", "10",
+    print(subprocess.call(["convert", "-delay", "24",
                            "-loop", "0", "tmp/*.jpeg", "animation.gif"]))
 
 
