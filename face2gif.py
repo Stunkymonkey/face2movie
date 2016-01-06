@@ -1,21 +1,27 @@
+#!/usr/bin/env python2.7
 # import numpy as np
 import sys
 import os.path
 from math import atan, pi
 import numpy as np
+from optparse import OptionParser
 
 try:
     import cv2
 except:
     sys.exit("Please install OpenCV")
 
-try:
-    from images2gif import writeGif
-except:
-    sys.exit("Please install images2gif")
+parser = OptionParser()
+parser.add_option("-i", "--imagefolder", type="string", dest="imagefolder",
+                  help="Path of images")
+parser.add_option("-w", "--write", action="store_true", dest="write",
+                  default=False, help="to write every single image to file")
 
-FOLDER = os.path.join(os.path.abspath("."))
-DEST_DIR = os.path.join(os.path.abspath(".") + r"/tmp/")
+(options, args) = parser.parse_args()
+imagefolder = options.imagefolder
+if (imagefolder is None):
+    sys.exit("No images given")
+write = bool(options.write)
 
 if (os.path.isfile("haarcascade_frontalface_default.xml")):
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -26,9 +32,6 @@ if (os.path.isfile("haarcascade_eye.xml")):
     eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 else:
     sys.exit("haarcascade_eye.xml not found")
-
-if not os.path.exists(DEST_DIR):
-    os.makedirs(DEST_DIR)
 
 
 def dectectFace(gray):
@@ -59,7 +62,7 @@ def detect(img, gray):
     faces = dectectFace(gray)
 
     # for making sure only having one face
-    if len(faces) == 0:
+    if len(faces) != 1:
         return None, None
 
     # drawFaces(faces, img)
@@ -73,8 +76,8 @@ def detect(img, gray):
             return None, None
 
         # drawEyes(eyes, roi_color)
-        return faces, eyes
-    # return faces, eyes
+        # return faces, eyes
+    return faces, eyes
 
 
 def matrixPicture(face, eyes, height, width):
@@ -82,8 +85,8 @@ def matrixPicture(face, eyes, height, width):
     center = tuple((face[0] + (face[2] / 2), face[1] + (face[3] / 2)))
     scale = 1.0
 
-    M1 = np.float32([[1, 0, (width / 2) - center[0]],
-                     [0, 1, (height / 2) - center[1]]])
+    moveMatrix = np.float32([[1, 0, (width / 2) - center[0]],
+                             [0, 1, (height / 2) - center[1]]])
 
     eye1 = tuple((eyes[0][0] + (eyes[0][2] / 2),
                   eyes[0][1] + (eyes[0][3] / 2)))
@@ -93,12 +96,11 @@ def matrixPicture(face, eyes, height, width):
     angle = atan((float(eye2[1]) - float(eye1[1])) /
                  (float(eye2[0]) - float(eye1[0]))) * 180 / pi
 
-    M2 = cv2.getRotationMatrix2D(center, angle, scale)
+    rotMatrix = cv2.getRotationMatrix2D(center, angle, scale)
 
-    # Matrix = np.dot(M1, M2)
-    # Matrix = cv2.getAffineTransform(M1, M2)
+    # Matrix = np.dot(moveMatrix, rotMatrix)
     # print(Matrix)
-    return M1, M2
+    return moveMatrix, rotMatrix
 
 
 def calculatePicture(file):
@@ -109,7 +111,7 @@ def calculatePicture(file):
     height, width, channels = img.shape
 
     if faces is None or eyes is None:
-        return
+        return None
 
     face = faces[0]
     eye = [eyes[0], eyes[1]]
@@ -119,28 +121,11 @@ def calculatePicture(file):
     dst = cv2.warpAffine(img, moveMatrix, (width, height))
     dst = cv2.warpAffine(dst, rotMatrix, (width, height))
 
-    """
-    try:
-        cv2.imshow('face2gif', dst)
-        cv2.waitKey(0)
-    except (KeyboardInterrupt):
-        cv2.destroyAllWindows()
-        print("User pressed Ctrl+C")
+    return dst
 
-    cv2.destroyAllWindows()
-    """
-    # cv2.imwrite(DEST_DIR + os.path.basename(file), dst)
-    # if faces is not None and eyes is not None:
-    # if animation.isOpened():
-    animation.write(dst)
-    # else:
-    #     print("Skipped picture")
-
-    # return dst
-
-
+"""
 def checkInput():
-    """check input and return files"""
+    check input and return files
     files = []
     if not sys.argv[1]:
         print("No image given")
@@ -156,22 +141,65 @@ def checkInput():
     else:
         for file in sys.argv[1:]:
             files.append(file)
+    return files"""
+
+
+def checkInput():
+    """ check input and return files """
+    files = []
+    if imagefolder.endswith("/"):
+        for file in os.listdir(imagefolder):
+            if os.path.isfile(os.path.join(imagefolder, file)):
+                files.append(imagefolder + file)
     return files
 
 
-if __name__ == '__main__':
+def toMovie():
+    """ iterating the files and save them to movie-file """
     files = checkInput()
-    # x264
-    fourcc = cv2.cv.CV_FOURCC(*"XVID")
-    fps = 24.0
+    codecs = cv2.cv.CV_FOURCC(*'MP4V')
+    fps = 10.0
     height, width, channel = cv2.imread(files[0]).shape
-    global animation
-    animation = cv2.VideoWriter("animation.mov", fourcc, fps, (height, width))
-    while animation.isOpened:
-        for file in files:
-            dst = calculatePicture(file)
-            animation.write(dst)
-        cv2.destroyAllWindows()
-        break
-    animation.release()
-    print("just do: 'convert -delay 10 -loop 0 tmp/*.jpeg animation.gif'")
+
+    video = cv2.VideoWriter("animation.mkv", codecs,
+                            fps, (width, height), True)
+    if not video.isOpened():
+        sys.exit("Error when writing video file")
+    for file in files:
+        dst = calculatePicture(file)
+        if dst is not None and video.isOpened():
+            video.write(dst)
+    video.release()
+    print("save to animation.mkv")
+
+
+def toFile():
+    """ iterating files and save them seperately """
+    destdir = os.path.join(os.path.abspath(".") + r"/tmp/")
+    import subprocess
+    files = checkInput()
+    if not os.path.exists(destdir):
+        os.makedirs(destdir)
+    for file in files:
+        dst = calculatePicture(file)
+        if dst is not None:
+            """
+            try:
+                cv2.imshow('face2gif', dst)
+                cv2.waitKey(0)
+            except (KeyboardInterrupt):
+                cv2.destroyAllWindows()
+            cv2.destroyAllWindows()
+            """
+            cv2.imwrite(destdir + os.path.basename(file), dst)
+    print("all files are safed in: " + str(destdir))
+    print("now generating gif ...")
+    print(subprocess.call(["convert", "-delay", "10",
+                           "-loop", "0", "tmp/*.jpeg", "animation.gif"]))
+
+
+if __name__ == '__main__':
+    if write:
+        toFile()
+    else:
+        toMovie()
