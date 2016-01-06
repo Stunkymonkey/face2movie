@@ -1,5 +1,4 @@
 #!/usr/bin/env python2.7
-# import numpy as np
 import sys
 import os.path
 from math import atan, pi
@@ -11,9 +10,12 @@ try:
 except:
     sys.exit("Please install OpenCV")
 
+# Parser
 parser = OptionParser()
 parser.add_option("-i", "--imagefolder", type="string", dest="imagefolder",
                   help="Path of images")
+parser.add_option("-f", "--fps", type="string", dest="fps",
+                  help="fps of the resulting file")
 parser.add_option("-w", "--write", action="store_true", dest="write",
                   default=False, help="to write every single image to file")
 parser.add_option("-r", "--reverse", action="store_true", dest="reverse",
@@ -23,9 +25,13 @@ parser.add_option("-r", "--reverse", action="store_true", dest="reverse",
 imagefolder = options.imagefolder
 if (imagefolder is None):
     sys.exit("No images given")
+fps = float(options.fps)
+if (fps is None):
+    sys.exit("No fps given")
 write = bool(options.write)
 reverse = bool(options.reverse)
 
+# OpenCV files
 if (os.path.isfile("haarcascade_frontalface_default.xml")):
     face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 else:
@@ -63,11 +69,9 @@ def drawEyes(eyes, img):
 
 def detect(img, gray):
     faces = dectectFace(gray)
-
     # for making sure only having one face
     if len(faces) != 1:
         return None, None
-
     # drawFaces(faces, img)
 
     for (x, y, w, h) in faces:
@@ -75,11 +79,10 @@ def detect(img, gray):
         # roi_color = img[y:y + h, x:x + w]
         eyes = detectEye(roi_gray)
 
+        # making sure only having two eyes
         if len(eyes) != 2:
             return None, None
-
         # drawEyes(eyes, roi_color)
-        # return faces, eyes
     return faces, eyes
 
 
@@ -101,8 +104,6 @@ def matrixPicture(face, eyes, height, width):
 
     rotMatrix = cv2.getRotationMatrix2D(center, angle, scale)
 
-    # Matrix = np.dot(moveMatrix, rotMatrix)
-    # print(Matrix)
     return moveMatrix, rotMatrix
 
 
@@ -126,26 +127,6 @@ def calculatePicture(file):
 
     return dst
 
-"""
-def checkInput():
-    check input and return files
-    files = []
-    if not sys.argv[1]:
-        print("No image given")
-        quit()
-    elif (sys.argv[1].endswith("/") and os.path.isdir(sys.argv[1])):
-        onlyfiles = []
-        for f in os.listdir(sys.argv[1]):
-            if os.path.isfile(os.path.join(sys.argv[1], f)):
-                onlyfiles.append(f)
-        for file in onlyfiles:
-            if os.path.isfile(sys.argv[1] + file):
-                files.append(sys.argv[1] + file)
-    else:
-        for file in sys.argv[1:]:
-            files.append(file)
-    return files"""
-
 
 def checkInput():
     """ check input and return files """
@@ -165,7 +146,6 @@ def toMovie():
     """ iterating the files and save them to movie-file """
     files = checkInput()
     codecs = cv2.cv.CV_FOURCC(*'MP4V')
-    fps = 10.0
     height, width, channel = cv2.imread(files[0]).shape
 
     video = cv2.VideoWriter("animation.mkv", codecs,
@@ -201,7 +181,7 @@ def toFile():
             cv2.imwrite(destdir + os.path.basename(file), dst)
     print("all files are safed in: " + str(destdir))
     print("now generating gif ...")
-    print(subprocess.call(["convert", "-delay", "24",
+    print(subprocess.call(["convert", "-delay", fps,
                            "-loop", "0", "tmp/*.jpeg", "animation.gif"]))
 
 
