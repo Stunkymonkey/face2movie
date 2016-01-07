@@ -2,8 +2,12 @@
 import sys
 import os.path
 from math import atan, pi
-import numpy as np
 from optparse import OptionParser
+
+try:
+    import numpy as np
+except:
+    sys.exit("Please install numpy")
 
 try:
     import cv2
@@ -23,6 +27,7 @@ parser.add_option("-w", "--write", action="store_true", dest="write",
 parser.add_option("-r", "--reverse", action="store_true", dest="reverse",
                   default=False, help="iterate the files reversed")
 
+# parsing the input
 (options, args) = parser.parse_args()
 imagefolder = options.imagefolder
 if imagefolder is None:
@@ -63,18 +68,19 @@ def detectEye(roi_gray):
 
 
 def drawFaces(faces, img):
-    """drawing faces"""
+    """drawing faces (for debug)"""
     for (x, y, w, h) in faces:
         cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 1)
 
 
 def drawEyes(eyes, img):
-    """drawing eyes"""
+    """drawing eyes (for debug)"""
     for (ex, ey, ew, eh) in eyes:
         cv2.rectangle(img, (ex, ey), (ex + ew, ey + eh), (0, 255, 0), 1)
 
 
 def detect(img, gray):
+    """getting the image and returns the face and eyes"""
     faces = dectectFace(gray)
     # for making sure only having one face
     if len(faces) != 1:
@@ -97,10 +103,10 @@ def matrixPicture(face, eyes, height, width):
     """calculation of rotation and movement of the image"""
     center = tuple((face[0] + (face[2] / 2), face[1] + (face[3] / 2)))
 
-    scale = float(min(height, width)) / float(face[2]) * facescale
-
     moveMatrix = np.float32([[1, 0, (width / 2) - center[0]],
                              [0, 1, (height / 2) - center[1]]])
+
+    scale = float(min(height, width)) / float(face[2]) * facescale
 
     eye1 = tuple((eyes[0][0] + (eyes[0][2] / 2),
                   eyes[0][1] + (eyes[0][3] / 2)))
