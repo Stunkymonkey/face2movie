@@ -141,8 +141,13 @@ def matrixPicture(face, eyes, height, width):
     eye2 = tuple((eyes[1][0] + (eyes[1][2] / 2),
                   eyes[1][1] + (eyes[1][3] / 2)))
 
-    angle = atan((float(eye2[1]) - float(eye1[1])) /
-                 (float(eye2[0]) - float(eye1[0]))) * 180 / pi
+    x = (float(eye2[0]) - float(eye1[0]))
+    y = (float(eye2[1]) - float(eye1[1]))
+
+    if x == 0:
+        angle = 0
+    else:
+        angle = atan(y / x) * 180 / pi
 
     rotMatrix = cv2.getRotationMatrix2D(center, angle, scale)
 
