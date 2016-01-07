@@ -21,11 +21,15 @@ parser.add_option("-i", "--imagefolder", type="string", dest="imagefolder",
 parser.add_option("-s", "--facescale", type="string", dest="facescale",
                   help="scale of the face (default is 1/3)")
 parser.add_option("-f", "--fps", type="string", dest="fps",
-                  help="fps of the resulting file")
+                  help="fps of the resulting file (default is 24)")
+parser.add_option("-n", "--nameoftargetfile", type="string", dest="outputfile",
+                  help="name of the output file")
 parser.add_option("-w", "--write", action="store_true", dest="write",
                   default=False, help="to write every single image to file")
 parser.add_option("-r", "--reverse", action="store_true", dest="reverse",
                   default=False, help="iterate the files reversed")
+parser.add_option("-q", "--quiet", action="store_false", dest="quiet",
+                  default=True, help="the output should be hidden")
 parser.add_option("-m", "--multiplerender", action="store_true",
                   dest="multiplerender", default=False,
                   help="render the images multiple times")
@@ -42,9 +46,13 @@ else:
     facescale = float(facescale)
 fps = float(options.fps)
 if fps is None:
-    sys.exit("No fps given")
+    fps = 24
+outputfile = options.outputfile
+if outputfile is None:
+    outputfile = "animation"
 write = bool(options.write)
 reverse = bool(options.reverse)
+quiet = bool(options.quiet)
 multiplerender = bool(options.multiplerender)
 
 # OpenCV files
@@ -183,7 +191,7 @@ def checkInput():
         for file in os.listdir(imagefolder):
             if os.path.isfile(os.path.join(imagefolder, file)):
                 files.append(imagefolder + file)
-    if files is []:
+    if files is [] or not imagefolder.endswith("/"):
         sys.exit("No files found")
     if reverse:
         files.sort(reverse=True)
@@ -198,7 +206,7 @@ def toMovie():
     codecs = cv2.cv.CV_FOURCC(*'MP4V')
     height, width, channel = cv2.imread(files[0]).shape
 
-    video = cv2.VideoWriter("animation.mkv", codecs,
+    video = cv2.VideoWriter(outputfile + ".mkv", codecs,
                             fps, (width, height), True)
     if not video.isOpened():
         sys.exit("Error when writing video file")
@@ -207,16 +215,18 @@ def toMovie():
     for file in files:
         dst = calculatePicture(file)
         images = images + 1
-        sys.stdout.flush()
-        sys.stdout.write("\rimages: " + str(images) + "/" +
-                         str(len(files)) + " and " + str(found) +
-                         " added to movie")
+        if quiet:
+            sys.stdout.flush()
+            sys.stdout.write("\rimages: " + str(images) + "/" +
+                             str(len(files)) + " and " + str(found) +
+                             " added to movie")
         if dst is not None and video.isOpened():
             found = found + 1
             video.write(dst)
     video.release()
-    print
-    print("saved to animation.mkv")
+    if quiet:
+        print
+        print("saved to " + outputfile + ".mkv")
 
 
 def toFile():
@@ -238,10 +248,14 @@ def toFile():
             cv2.destroyAllWindows()
             """
             cv2.imwrite(destdir + os.path.basename(file), dst)
-    print("all files are safed in: " + str(destdir))
-    print("now generating gif ...")
-    print(subprocess.call(["convert", "-delay", fps,
-                           "-loop", "0", "tmp/*.jpeg", "animation.gif"]))
+    if quiet:
+        print("all files are safed in: " + str(destdir))
+        print("now generating gif ...")
+        print(subprocess.call(["convert", "-delay", fps,
+                               "-loop", "0", "tmp/*.jpeg", outputfile + ".gif"]))
+    else:
+        subprocess.call(["convert", "-delay", fps,
+                         "-loop", "0", "tmp/*.jpeg", outputfile + ".gif"])
 
 
 if __name__ == '__main__':
