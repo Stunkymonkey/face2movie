@@ -15,7 +15,7 @@ parser = OptionParser()
 parser.add_option("-i", "--imagefolder", type="string", dest="imagefolder",
                   help="Path of images")
 parser.add_option("-s", "--facescale", type="string", dest="facescale",
-                  help="scale of the face")
+                  help="scale of the face (default is 1/3)")
 parser.add_option("-f", "--fps", type="string", dest="fps",
                   help="fps of the resulting file")
 parser.add_option("-w", "--write", action="store_true", dest="write",
