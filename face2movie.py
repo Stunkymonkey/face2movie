@@ -14,6 +14,8 @@ except:
 parser = OptionParser()
 parser.add_option("-i", "--imagefolder", type="string", dest="imagefolder",
                   help="Path of images")
+parser.add_option("-s", "--facescale", type="string", dest="facescale",
+                  help="scale of the face")
 parser.add_option("-f", "--fps", type="string", dest="fps",
                   help="fps of the resulting file")
 parser.add_option("-w", "--write", action="store_true", dest="write",
@@ -23,10 +25,15 @@ parser.add_option("-r", "--reverse", action="store_true", dest="reverse",
 
 (options, args) = parser.parse_args()
 imagefolder = options.imagefolder
-if (imagefolder is None):
+if imagefolder is None:
     sys.exit("No images given")
+facescale = options.facescale
+if facescale is None:
+    facescale = float(1.0/3)
+else:
+    facescale = float(facescale)
 fps = float(options.fps)
-if (fps is None):
+if fps is None:
     sys.exit("No fps given")
 write = bool(options.write)
 reverse = bool(options.reverse)
@@ -89,7 +96,8 @@ def detect(img, gray):
 def matrixPicture(face, eyes, height, width):
     """calculation of rotation and movement of the image"""
     center = tuple((face[0] + (face[2] / 2), face[1] + (face[3] / 2)))
-    scale = 1.0
+
+    scale = float(min(height, width)) / float(face[2]) * facescale
 
     moveMatrix = np.float32([[1, 0, (width / 2) - center[0]],
                              [0, 1, (height / 2) - center[1]]])
