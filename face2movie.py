@@ -70,7 +70,7 @@ def dectectFace(gray):
             elif len(faces) > 1:
                 return None
             # print(str(i) + "- useless calc:" + str(faces))
-        print("no face found")
+        # print("no face found")
         return None
     else:
         return face_cascade.detectMultiScale(
@@ -88,7 +88,7 @@ def detectEye(roi_gray):
             elif len(eyes) > 2:
                 return None
             # print(str(i) + "- useless calc:" + str(eyes))
-        print("no eyes found")
+        # print("no eyes found")
         return None
     else:
         return eye_cascade.detectMultiScale(
@@ -197,12 +197,12 @@ def toMovie():
                             fps, (width, height), True)
     if not video.isOpened():
         sys.exit("Error when writing video file")
-    i = 0
+    # i = 0
     for file in files:
         dst = calculatePicture(file)
         if dst is not None and video.isOpened():
-            i = i + 1
-            print(i)
+            # i = i + 1
+            # print(i)
             video.write(dst)
     video.release()
     print("save to animation.mkv")
