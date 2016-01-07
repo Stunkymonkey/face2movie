@@ -202,15 +202,21 @@ def toMovie():
                             fps, (width, height), True)
     if not video.isOpened():
         sys.exit("Error when writing video file")
-    # i = 0
+    images = 0
+    found = 0
     for file in files:
         dst = calculatePicture(file)
+        images = images + 1
+        sys.stdout.flush()
+        sys.stdout.write("\rimages: " + str(images) + "/" +
+                         str(len(files)) + " and " + str(found) +
+                         " added to movie")
         if dst is not None and video.isOpened():
-            # i = i + 1
-            # print(i)
+            found = found + 1
             video.write(dst)
     video.release()
-    print("save to animation.mkv")
+    print
+    print("saved to animation.mkv")
 
 
 def toFile():
