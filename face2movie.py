@@ -26,6 +26,9 @@ parser.add_option("-w", "--write", action="store_true", dest="write",
                   default=False, help="to write every single image to file")
 parser.add_option("-r", "--reverse", action="store_true", dest="reverse",
                   default=False, help="iterate the files reversed")
+parser.add_option("-m", "--multiplerender", action="store_true",
+                  dest="multiplerender", default=False,
+                  help="render the images multiple times")
 
 # parsing the input
 (options, args) = parser.parse_args()
@@ -34,7 +37,7 @@ if imagefolder is None:
     sys.exit("No images given")
 facescale = options.facescale
 if facescale is None:
-    facescale = float(1.0/3)
+    facescale = float(1.0 / 3)
 else:
     facescale = float(facescale)
 fps = float(options.fps)
@@ -42,6 +45,7 @@ if fps is None:
     sys.exit("No fps given")
 write = bool(options.write)
 reverse = bool(options.reverse)
+multiplerender = bool(options.multiplerender)
 
 # OpenCV files
 if (os.path.isfile("haarcascade_frontalface_default.xml")):
@@ -57,14 +61,38 @@ else:
 
 def dectectFace(gray):
     """detecting faces"""
-    return face_cascade.detectMultiScale(
-        gray, scaleFactor=1.3, minNeighbors=5, minSize=(60, 60))
+    if multiplerender:
+        for i in np.arange(1.05, 1.65, 0.05)[::-1]:
+            faces = face_cascade.detectMultiScale(
+                gray, scaleFactor=i, minNeighbors=5, minSize=(60, 60))
+            if len(faces) == 1:
+                return faces
+            elif len(faces) > 1:
+                return None
+            # print(str(i) + "- useless calc:" + str(faces))
+        print("no face found")
+        return None
+    else:
+        return face_cascade.detectMultiScale(
+            gray, scaleFactor=1.3, minNeighbors=5, minSize=(60, 60))
 
 
 def detectEye(roi_gray):
     """detecting eyes"""
-    return eye_cascade.detectMultiScale(
-        roi_gray, scaleFactor=1.05, minNeighbors=5, minSize=(25, 25))
+    if multiplerender:
+        for i in np.arange(1.01, 1.10, 0.01)[::-1]:
+            eyes = eye_cascade.detectMultiScale(
+                roi_gray, scaleFactor=i, minNeighbors=5, minSize=(25, 25))
+            if len(eyes) == 2:
+                return eyes
+            elif len(eyes) > 2:
+                return None
+            # print(str(i) + "- useless calc:" + str(eyes))
+        print("no eyes found")
+        return None
+    else:
+        return eye_cascade.detectMultiScale(
+            roi_gray, scaleFactor=1.05, minNeighbors=5, minSize=(25, 25))
 
 
 def drawFaces(faces, img):
@@ -83,7 +111,7 @@ def detect(img, gray):
     """getting the image and returns the face and eyes"""
     faces = dectectFace(gray)
     # for making sure only having one face
-    if len(faces) != 1:
+    if faces is None or len(faces) != 1:
         return None, None
     # drawFaces(faces, img)
 
@@ -93,7 +121,7 @@ def detect(img, gray):
         eyes = detectEye(roi_gray)
 
         # making sure only having two eyes
-        if len(eyes) != 2:
+        if eyes is None or len(eyes) != 2:
             return None, None
         # drawEyes(eyes, roi_color)
     return faces, eyes
@@ -126,6 +154,7 @@ def calculatePicture(file):
     img = cv2.imread(file)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     faces, eyes = detect(img, gray)
+    # print("faces: " + str(faces) + " # eyes:" + str(eyes))
     height, width, channels = img.shape
 
     if faces is None or eyes is None:
@@ -145,10 +174,12 @@ def calculatePicture(file):
 def checkInput():
     """ check input and return files """
     files = []
-    if imagefolder.endswith("/"):
+    if imagefolder:
         for file in os.listdir(imagefolder):
             if os.path.isfile(os.path.join(imagefolder, file)):
                 files.append(imagefolder + file)
+    if files is []:
+        sys.exit("No files found")
     if reverse:
         files.sort(reverse=True)
     else:
@@ -166,9 +197,12 @@ def toMovie():
                             fps, (width, height), True)
     if not video.isOpened():
         sys.exit("Error when writing video file")
+    i = 0
     for file in files:
         dst = calculatePicture(file)
         if dst is not None and video.isOpened():
+            i = i + 1
+            print(i)
             video.write(dst)
     video.release()
     print("save to animation.mkv")
