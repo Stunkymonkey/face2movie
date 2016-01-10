@@ -189,7 +189,7 @@ def checkInput():
     files = []
     if imagefolder:
         for file in os.listdir(imagefolder):
-            if os.path.isfile(os.path.join(imagefolder, file)):
+            if os.path.isfile(os.path.join(imagefolder, file)) and not file.startswith("."):
                 files.append(imagefolder + file)
     if files is [] or not imagefolder.endswith("/"):
         sys.exit("No files found")
@@ -252,7 +252,8 @@ def toFile():
         print("all files are safed in: " + str(destdir))
         print("now generating gif ...")
         print(subprocess.call(["convert", "-delay", fps,
-                               "-loop", "0", "tmp/*.jpeg", outputfile + ".gif"]))
+                               "-loop", "0", "tmp/*.jpeg",
+                               outputfile + ".gif"]))
     else:
         subprocess.call(["convert", "-delay", fps,
                          "-loop", "0", "tmp/*.jpeg", outputfile + ".gif"])
