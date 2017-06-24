@@ -44,9 +44,10 @@ if facescale is None:
     facescale = float(1.0 / 3)
 else:
     facescale = float(facescale)
-fps = float(options.fps)
-if fps is None:
+if options.fps is None:
     fps = 24
+else:
+    fps = float(options.fps)
 outputfile = options.outputfile
 if outputfile is None:
     outputfile = "animation"
@@ -203,7 +204,7 @@ def checkInput():
 def toMovie():
     """ iterating the files and save them to movie-file """
     files = checkInput()
-    codecs = cv2.cv.CV_FOURCC(*'MP4V')
+    codecs = cv2.VideoWriter_fourcc(*'FMP4')
     height, width, channel = cv2.imread(files[0]).shape
 
     video = cv2.VideoWriter(outputfile + ".mkv", codecs,
