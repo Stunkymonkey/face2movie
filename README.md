@@ -1,14 +1,14 @@
-#face2movie
+# face2movie
 detect faces in pictures and makes movie/gif out of it
 
-##why i wrote this
+## why i wrote this
 i started taking pictures two years ago with my webcam every hour. It was very funny just to see what results you get. I thought why not make a video out of it. But with only having your face in diffenrent locations, is not very nice in a movie.
 This is why i wrote this programm. Just for making nice movies of myself:D
 
-##install
+## install
 for the face-detection it uses [OpenCV](http://opencv.org/), so you have to install it with python bindings
 
-##how it works
+## how it works
 + detecting the face (using OpenCV)
 + then croping the face
 + detecting 2 eyes (also OpenCV) in the face
@@ -16,7 +16,7 @@ for the face-detection it uses [OpenCV](http://opencv.org/), so you have to inst
 + apply all to the image
 + append the image to the movie file
 
-##usage
+## usage
 ```
 Usage: face2movie.py [options]
 
