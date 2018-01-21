@@ -1,8 +1,8 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 import sys
 import os.path
 from math import atan, pi
-from optparse import OptionParser
+import argparse
 
 try:
     import numpy as np
@@ -15,46 +15,46 @@ except:
     sys.exit("Please install OpenCV")
 
 # Parser
-parser = OptionParser()
-parser.add_option("-i", "--imagefolder", type="string", dest="imagefolder",
-                  help="Path of images")
-parser.add_option("-s", "--facescale", type="string", dest="facescale",
-                  help="scale of the face (default is 1/3)")
-parser.add_option("-f", "--fps", type="string", dest="fps",
-                  help="fps of the resulting file (default is 24)")
-parser.add_option("-n", "--nameoftargetfile", type="string", dest="outputfile",
-                  help="name of the output file")
-parser.add_option("-w", "--write", action="store_true", dest="write",
-                  default=False, help="to write every single image to file")
-parser.add_option("-r", "--reverse", action="store_true", dest="reverse",
-                  default=False, help="iterate the files reversed")
-parser.add_option("-q", "--quiet", action="store_false", dest="quiet",
-                  default=True, help="the output should be hidden")
-parser.add_option("-m", "--multiplerender", action="store_true",
-                  dest="multiplerender", default=False,
-                  help="render the images multiple times")
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--imagefolder", type=str,
+                    dest="imagefolder", help="Path of images", required=True)
+parser.add_argument("-s", "--facescale", type=str, dest="facescale",
+                    help="scale of the face (default is 1/3)")
+parser.add_argument("-f", "--fps", type=str, dest="fps",
+                    help="fps of the resulting file (default is 24)")
+parser.add_argument("-n", "--nameoftargetfile", type=str, dest="outputfile",
+                    help="name of the output file")
+parser.add_argument("-w", "--write", action="store_true", dest="write",
+                    default=False, help="to write every single image to file")
+parser.add_argument("-r", "--reverse", action="store_true", dest="reverse",
+                    default=False, help="iterate the files reversed")
+parser.add_argument("-q", "--quiet", action="store_false", dest="quiet",
+                    default=True, help="the output should be hidden")
+parser.add_argument("-m", "--multiplerender", action="store_true",
+                    dest="multiplerender", default=False,
+                    help="render the images multiple times")
 
 # parsing the input
-(options, args) = parser.parse_args()
-imagefolder = options.imagefolder
+args = parser.parse_args()
+imagefolder = args.imagefolder + "/"
 if imagefolder is None:
     sys.exit("No images given")
-facescale = options.facescale
+facescale = args.facescale
 if facescale is None:
     facescale = float(1.0 / 3)
 else:
     facescale = float(facescale)
-if options.fps is None:
+if args.fps is None:
     fps = 24
 else:
-    fps = float(options.fps)
-outputfile = options.outputfile
+    fps = float(args.fps)
+outputfile = args.outputfile
 if outputfile is None:
     outputfile = "animation"
-write = bool(options.write)
-reverse = bool(options.reverse)
-quiet = bool(options.quiet)
-multiplerender = bool(options.multiplerender)
+write = bool(args.write)
+reverse = bool(args.reverse)
+quiet = bool(args.quiet)
+multiplerender = bool(args.multiplerender)
 
 # OpenCV files
 if (os.path.isfile("haarcascade_frontalface_default.xml")):
@@ -71,7 +71,7 @@ else:
 def dectectFace(gray):
     """detecting faces"""
     if multiplerender:
-        for i in np.arange(1.05, 1.65, 0.05)[::-1]:
+        for i in np.arange(1.05, 1.65, 0.02)[::-1]:
             faces = face_cascade.detectMultiScale(
                 gray, scaleFactor=i, minNeighbors=5, minSize=(60, 60))
             if len(faces) == 1:
@@ -192,7 +192,7 @@ def checkInput():
         for file in os.listdir(imagefolder):
             if os.path.isfile(os.path.join(imagefolder, file)) and not file.startswith("."):
                 files.append(imagefolder + file)
-    if files is [] or not imagefolder.endswith("/"):
+    if len(files) == 0:
         sys.exit("No files found")
     if reverse:
         files.sort(reverse=True)
@@ -226,7 +226,7 @@ def toMovie():
             video.write(dst)
     video.release()
     if quiet:
-        print
+        print()
         print("saved to " + outputfile + ".mkv")
 
 
